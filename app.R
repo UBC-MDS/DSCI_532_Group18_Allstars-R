@@ -4,6 +4,8 @@ library(dashHtmlComponents)
 library(dashBootstrapComponents)
 library(ggplot2)
 library(plotly)
+library(dashTable)
+
 app <- Dash$new(external_stylesheets = dbcThemes$BOOTSTRAP)
 server = app$server
 
@@ -12,7 +14,9 @@ world_df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/2
     select(CODE, COUNTRY)
 
 merged_df <- merge(df, world_df, by.x = "Country", by.y= "COUNTRY", all = TRUE)
-merged_df$happiness_rank <- rank(-merged_df[, 4], na.last = "keep" ,ties.method = 'min' )
+#names(merged_df)[4] <- "Ladder_score" 
+#merged_df$Ladder_score[is.na(merged_df$Ladder_score)] <- 0
+merged_df$happiness_rank <- rank(-merged_df[, 4], na.last = "keep", ties.method = 'min' )
 
 names(df)[3] <- "Region"
 
@@ -65,21 +69,16 @@ world_fig <- world_fig %>% add_trace(
 world_fig <- world_fig %>% colorbar(title = 'Happiness World Rank')
 world_fig <- world_fig %>% layout(
     title = 'World Happiness Ranking',
-    geo = g
+    geo = g,
+    clickmode = 'event+select'
 )
 
 
 app$layout(
     htmlDiv(list(
         htmlH1(
-            "Country Happiness Visualization",
-            style = list(
-                'textAlign' = "center",
-                'marginTop' = 25,
-                "color" = "white",
-                "border-radius" = "10px",
-                "background-color" = "turquoise"
-            )
+            id="site_header",
+            "Country Happiness Visualization"
         ),
         htmlH5(
             "This app is designed to explore world's happiness
@@ -88,14 +87,14 @@ app$layout(
             style = list("textAlign" = "center", "color" = "black")
         ),
         htmlBr(),
-        htmlDiv(list(
+        htmlDiv(id = "topbar", list(
             htmlDiv(list(
                 dbcLabel("Select Region"),
                 dccDropdown(
                     id = 'region',
                     value = 'Western Europe',
                     options = region_indicator
-                )), style = list(width = '25%', display = 'inline-block')
+                ))
             ),
             htmlDiv(list(
                 dbcLabel("Select Preferences"),
@@ -103,22 +102,24 @@ app$layout(
                     id = 'column_name',
                     value = 'Ladder score',
                     options = preferences_indicator
-                )), style = list(width = '25%', display = 'inline-block')
+                ))
             ),
             htmlDiv(list(
                 dbcLabel("Select Country"),
                 dccDropdown(
                     id = 'country_name',
                     options = country_indicator
-                )), style = list(width = '25%', display = 'inline-block')
+                ))
             )
-        ), style = list('text-align' = 'center')),
+        )),
         htmlBr(),
         htmlDiv(list(
-            dccGraph(figure = world_fig)
-        ))
-        
-    ))
+            dccGraph(
+                id = 'world_map',
+                figure = world_fig)
+        ))#continue adding here
+        )
+    )
 )
 
 app$callback(
@@ -129,6 +130,8 @@ app$callback(
         filtered_list <- unique(filtered_df[, 2])
         
         lapply(filtered_list, function(x) list(label = x, value = x))
-    })
+})
+
+
 
 app$run_server(debug = T)

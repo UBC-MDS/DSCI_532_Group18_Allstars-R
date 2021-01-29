@@ -134,4 +134,4 @@ app$callback(
 
 
 
-app$run_server(debug = T)
+app$run_server(host = '0.0.0.0', debug=T) 

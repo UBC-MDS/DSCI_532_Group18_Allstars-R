@@ -75,6 +75,39 @@ world_fig <- world_fig %>% layout(
     clickmode = 'event+select'
 )
 
+# Create connected graph function
+create_connected_graph <- function(df = merged_df, region = "Western Europe"){
+    region_df <- df %>%
+        filter(Regional_indicator == region)
+    
+    # Happiness rank plot for the selected region
+    happiness_rank <- ggplot(region_df) +
+        aes(x = Happiness_score,
+            y = reorder(Country, Happiness_score),
+            xmin = lowerwhisker,
+            xmax = upperwhisker) +
+        geom_point(color = "#0abab5", size = 3) +
+        geom_errorbarh(height = 0.2) +
+        labs(x = "Happiness Score", y = "")
+    happiness_rank <- happiness_rank +
+        theme_classic()
+    
+    # Population density chart for the selected region
+    density_chart <- ggplot(region_df) +
+        aes(x = Density, y = reorder(Country, Density)) +
+        geom_bar(stat = "identity", fill = "#0abab5") +
+        # scale_x_continuous(oob=scales::oob_keep) +
+        labs(x = "Density", y = "")
+    density_chart <- density_chart +
+        theme_classic()
+    
+    # Subplot of connected graph
+    subplot_conn <- subplot(ggplotly(happiness_rank) %>% layout(clickmode = 'event+select'),
+                            ggplotly(density_chart) %>% layout(clickmode = 'event+select'),
+                            margin = 0.08)
+    
+    return(subplot_conn)
+}
 
 app$layout(
     htmlDiv(list(
@@ -101,7 +134,7 @@ app$layout(
             htmlDiv(list(
                 dbcLabel("Select Preferences"),
                 dccDropdown(
-                    id = 'column_name',
+                    id = 'preference_name',
                     value = 'Ladder score',
                     options = preferences_indicator
                 ))
@@ -119,9 +152,13 @@ app$layout(
             dccGraph(
                 id = 'world_map',
                 figure = world_fig)
-        ))#continue adding here
-        )
-    )
+        )),
+        htmlDiv(list(
+            dccGraph(
+                id = 'connected_graph',
+                figure = create_connected_graph())
+        ))
+    ))
 )
 
 app$callback(
@@ -134,6 +171,11 @@ app$callback(
         lapply(filtered_list, function(x) list(label = x, value = x))
 })
 
-
+app$callback(
+    output=list(id='connected_graph', property='figure'),
+    params=list(input(id='region', property='value')),
+    function(input_value) {
+        create_connected_graph(df = merged_df, region = input_value)
+})
 
 app$run_server(debug = T)

@@ -1,0 +1,29 @@
+#site_header {
+  text-align: center;
+  margin-top: 25px;
+  color: white;
+  border-radius: 10px;
+  background-color: turquoise;
+}
+
+#topbar {
+  text-align: center;
+}
+
+#topbar>div{
+  width: 25%;
+  padding-left: 10px;
+  display: inline-block;
+}
+
+#topbar label{
+  color: white;
+  background-color: turquoise;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+#world_map {
+    width: 50%;
+    margin: auto;
+}

@@ -5,6 +5,7 @@ library(dashBootstrapComponents)
 library(ggplot2)
 library(plotly)
 library(dashTable)
+library(tidyverse)
 
 app <- Dash$new(external_stylesheets = dbcThemes$BOOTSTRAP)
 server = app$server
@@ -18,13 +19,14 @@ merged_df <- merge(df, world_df, by.x = "Country", by.y= "COUNTRY", all = TRUE)
 #merged_df$Ladder_score[is.na(merged_df$Ladder_score)] <- 0
 merged_df$happiness_rank <- rank(-merged_df[, 4], na.last = "keep", ties.method = 'min' )
 
+
 names(df)[3] <- "Region"
 
 region_list <- unique(df[, 3])
 country_list <- unique(df[, 2])
 
 preferences <- c(
-    "Ladder score",
+    "Happiness score",
     "Logged GDP per capita",
     "Social support",
     "Healthy life expectancy",
@@ -32,9 +34,9 @@ preferences <- c(
     "Generosity",
     "Perceptions of corruption",
     "Population (2020)",
-    "Density (P/Km²)",
-    "Land Area (Km²)",
-    "Migrants (net)",
+    "Density",
+    "Land Area",
+    "Migrants net",
     "Cost of Living Index",
     "Rent Index",
     "Cost of Living Plus Rent Index",
@@ -46,7 +48,7 @@ region_indicator <- lapply(region_list, function(x)
     list(label = x, value = x))
 
 preferences_indicator <- lapply(preferences, function(x) 
-    list(label = x, value = x))
+    list(label = x, value = str_replace_all(x, pattern = " ", replacement = "_")))
 
 country_indicator <- lapply(country_list, function(x) 
     list(label = x, value = x))

@@ -24,6 +24,25 @@
 }
 
 #world_map {
-    width: 50%;
     margin: auto;
+}
+
+#data_table>div{
+    width: 40%;
+    display: inline-block;
+}
+
+#row_4>div{
+    width: 45%;
+    display: inline-block;
+}
+
+#col_2>div{
+    float: left;
+    display: inline-block;
+}
+
+#table{
+    width: 70%;
+    float: left;
 }

@@ -141,29 +141,30 @@ app$layout(
                     value = 'Happiness_score',
                     options = preferences_indicator
                 ))
-            ),
-            htmlDiv(list(
-                dbcLabel("Select Country"),
-                dccDropdown(
-                    id = 'country_name',
-                    options = country_indicator,
-                    multi = TRUE
-                ))
             )
         )),
         htmlBr(),
+        htmlDiv(id = 'map_div',list(htmlH6("Hover on the worldmap to see happiness score index:", 
+               style= list(
+                 'textAlign' = 'left',
+                 'color' = 'white',
+                 'border' = '1px solid #d3d3d3', 
+                 'border-radius' = '10px',
+                 'background-color' = 'turquoise',
+                 'padding-left' = '10px',
+                 'padding-top' = '5px',
+                 'padding-bottom' = '5px'
+               )))),
+        htmlBr(),
+        htmlBr(),
+     
         htmlDiv(id ='data_table', list(
             htmlDiv(list(
                 dccGraph(
                     id = 'world_map',
                     figure = world_fig)
             )),
-            htmlDiv(id = 'col_2', list(
-                htmlDiv(list(
-                    dashDataTable(
-                        id = 'table'
-                )
-                )),
+            htmlDiv(id = 'pref_barplot', list(
                 htmlDiv(list(
                     dccGraph(
                         id = 'preference_bar_plot',
@@ -171,6 +172,20 @@ app$layout(
                 ))
             ))
         )),
+        htmlBr(),
+        htmlDiv(id = 'country_div',list(htmlH6("Country-to-Country Comparison based on selected preferences", 
+                                           style= list(
+                                             'textAlign' = 'left',
+                                             'color' = 'white',
+                                             'border' = '1px solid #d3d3d3', 
+                                             'border-radius' = '10px',
+                                             'background-color' = 'turquoise',
+                                             'padding-left' = '10px',
+                                             'padding-top' = '5px',
+                                             'padding-bottom' = '5px'
+                                           )))),
+        htmlBr(),
+        htmlBr(),
         htmlDiv(id = 'row_4', list(
             htmlDiv(list(
                 dccGraph(
@@ -184,7 +199,47 @@ app$layout(
                     figure = create_bar_graph()
                 )
             ))
-        ))
+        )),
+        htmlBr(),
+        htmlBr(),
+        htmlDiv(id = "map_header", list(
+          htmlDiv(list(
+            dbcLabel("Select Country"),
+            dccDropdown(
+              id = 'country_name',
+              options = country_indicator,
+              multi = TRUE
+            ))
+          )
+        )),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlDiv(id = "table_summary",
+                list(
+          htmlDiv(list(
+            dashDataTable(
+              id = 'table',
+              page_size = 5,
+              style_cell=list('textAlign'= 'center'),
+              style_header= list( 'border' =  '1px solid black' )
+            )
+          ))
+        )
+        ),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr()
+        
+                
     ))
 )
 
@@ -219,14 +274,15 @@ app$callback(
                 input(id='preference_name', property='value')),
     function(region, column){
       region_df <- df %>% filter( Region == region)
+      column_name <- str_replace_all(column, "_"," ")
       bar_plot <- ggplot(region_df) +
         aes(x = !!sym(column),
             fill = Country,
             y = reorder(Country, !!sym(column))) +
         geom_bar(stat = 'identity', fill="#0ABAB5") +
                  scale_x_continuous(expand=expansion(mult=c(0,0.5))) +
-                   ylab("")
-                 print(region_df)
+        xlab(column_name) + 
+        ylab("")
     return(ggplotly(bar_plot))
 })
 
@@ -246,6 +302,7 @@ app$callback(
    function(preference_value = 'Social support') {
       col<-list( 
         list(id = "Country", name = "Country"),
+        list(id = "Region", name = "Region"),
         list(
             id = preference_value,
             name = str_replace_all(preference_value, "_"," ")

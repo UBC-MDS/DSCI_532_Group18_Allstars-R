@@ -6,7 +6,7 @@ library(ggplot2)
 library(plotly)
 library(dashTable)
 library(tidyverse)
-
+### Added tidyverse
 app <- Dash$new(external_stylesheets = dbcThemes$BOOTSTRAP)
 server = app$server
 
@@ -310,4 +310,4 @@ app$callback(
       col
 })
 
-app$run_server(debug = T)
+app$run_server(host = '0.0.0.0', debug=T) 

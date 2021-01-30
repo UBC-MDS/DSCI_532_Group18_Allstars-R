@@ -5,6 +5,7 @@ library(dashBootstrapComponents)
 library(ggplot2)
 library(plotly)
 library(dashTable)
+library(tidyverse)
 
 app <- Dash$new(external_stylesheets = dbcThemes$BOOTSTRAP)
 server = app$server
@@ -18,13 +19,14 @@ merged_df <- merge(df, world_df, by.x = "Country", by.y= "COUNTRY", all = TRUE)
 #merged_df$Ladder_score[is.na(merged_df$Ladder_score)] <- 0
 merged_df$happiness_rank <- rank(-merged_df[, 4], na.last = "keep", ties.method = 'min' )
 
+
 names(df)[3] <- "Region"
 
 region_list <- unique(df[, 3])
 country_list <- unique(df[, 2])
 
 preferences <- c(
-    "Ladder score",
+    "Happiness score",
     "Logged GDP per capita",
     "Social support",
     "Healthy life expectancy",
@@ -32,9 +34,9 @@ preferences <- c(
     "Generosity",
     "Perceptions of corruption",
     "Population (2020)",
-    "Density (P/Km²)",
-    "Land Area (Km²)",
-    "Migrants (net)",
+    "Density",
+    "Land Area",
+    "Migrants net",
     "Cost of Living Index",
     "Rent Index",
     "Cost of Living Plus Rent Index",
@@ -46,7 +48,7 @@ region_indicator <- lapply(region_list, function(x)
     list(label = x, value = x))
 
 preferences_indicator <- lapply(preferences, function(x) 
-    list(label = x, value = x))
+    list(label = x, value = str_replace_all(x, pattern = " ", replacement = "_")))
 
 country_indicator <- lapply(country_list, function(x) 
     list(label = x, value = x))
@@ -74,6 +76,42 @@ world_fig <- world_fig %>% layout(
 )
 
 
+create_error_graph <- function(df = merged_df, region = "Western Europe"){
+  region_df <- df %>%
+      filter(Regional_indicator == region)
+  
+  # Happiness rank plot for the selected region
+  happiness_rank <- ggplot(region_df) +
+      aes(x = Happiness_score,
+          y = reorder(Country, Happiness_score),
+          xmin = lowerwhisker,
+          xmax = upperwhisker) +
+      geom_point(color = "#0abab5", size = 3) +
+      geom_errorbarh(height = 0.2) +
+      labs(x = "Happiness Score", y = "")
+  happiness_rank <- happiness_rank +
+      theme_classic() 
+  error <- ggplotly(happiness_rank) %>% layout(clickmode = 'event+select')
+  return(error)
+}
+
+create_bar_graph <- function(df = merged_df, region = "Western Europe"){
+  region_df <- df %>%
+    filter(Regional_indicator == region)
+  # Population density chart for the selected region
+  density_chart <- ggplot(region_df) +
+    aes(x = Density, y = reorder(Country, Density)) +
+    geom_bar(stat = "identity", fill = "#0abab5") +
+    # scale_x_continuous(oob=scales::oob_keep) +
+    labs(x = "Density", y = "")
+  density_chart <- density_chart +
+    theme_classic()
+ 
+  bar <- ggplotly(density_chart) %>% layout(clickmode = 'event+select')
+  return(bar)
+}
+
+
 app$layout(
     htmlDiv(list(
         htmlH1(
@@ -99,27 +137,110 @@ app$layout(
             htmlDiv(list(
                 dbcLabel("Select Preferences"),
                 dccDropdown(
-                    id = 'column_name',
-                    value = 'Ladder score',
+                    id = 'preference_name',
+                    value = 'Happiness_score',
                     options = preferences_indicator
-                ))
-            ),
-            htmlDiv(list(
-                dbcLabel("Select Country"),
-                dccDropdown(
-                    id = 'country_name',
-                    options = country_indicator
                 ))
             )
         )),
         htmlBr(),
-        htmlDiv(list(
-            dccGraph(
-                id = 'world_map',
-                figure = world_fig)
-        ))#continue adding here
+        htmlDiv(id = 'map_div',list(htmlH6("Hover on the worldmap to see happiness score index:", 
+               style= list(
+                 'textAlign' = 'left',
+                 'color' = 'white',
+                 'border' = '1px solid #d3d3d3', 
+                 'border-radius' = '10px',
+                 'background-color' = 'turquoise',
+                 'padding-left' = '10px',
+                 'padding-top' = '5px',
+                 'padding-bottom' = '5px'
+               )))),
+        htmlBr(),
+        htmlBr(),
+     
+        htmlDiv(id ='data_table', list(
+            htmlDiv(list(
+                dccGraph(
+                    id = 'world_map',
+                    figure = world_fig)
+            )),
+            htmlDiv(id = 'pref_barplot', list(
+                htmlDiv(list(
+                    dccGraph(
+                        id = 'preference_bar_plot',
+                    )
+                ))
+            ))
+        )),
+        htmlBr(),
+        htmlDiv(id = 'country_div',list(htmlH6("Country-to-Country Comparison based on selected preferences", 
+                                           style= list(
+                                             'textAlign' = 'left',
+                                             'color' = 'white',
+                                             'border' = '1px solid #d3d3d3', 
+                                             'border-radius' = '10px',
+                                             'background-color' = 'turquoise',
+                                             'padding-left' = '10px',
+                                             'padding-top' = '5px',
+                                             'padding-bottom' = '5px'
+                                           )))),
+        htmlBr(),
+        htmlBr(),
+        htmlDiv(id = 'row_4', list(
+            htmlDiv(list(
+                dccGraph(
+                    id = 'error_plot',
+                    figure = create_error_graph()
+                )
+            )),
+            htmlDiv(list(
+                dccGraph(
+                    id = 'bar_plot',
+                    figure = create_bar_graph()
+                )
+            ))
+        )),
+        htmlBr(),
+        htmlBr(),
+        htmlDiv(id = "map_header", list(
+          htmlDiv(list(
+            dbcLabel("Select Country"),
+            dccDropdown(
+              id = 'country_name',
+              options = country_indicator,
+              multi = TRUE
+            ))
+          )
+        )),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlDiv(id = "table_summary",
+                list(
+          htmlDiv(list(
+            dashDataTable(
+              id = 'table',
+              page_size = 5,
+              style_cell=list('textAlign'= 'center'),
+              style_header= list( 'border' =  '1px solid black' )
+            )
+          ))
         )
-    )
+        ),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr(),
+        htmlBr()
+        
+                
+    ))
 )
 
 app$callback(
@@ -133,5 +254,60 @@ app$callback(
 })
 
 
+app$callback(
+    output=list(id='bar_plot', property='figure'),
+    params=list(input(id='region', property = 'value')),
+    function(input_value){
+        create_bar_graph(df = merged_df, region = input_value)
+})
+
+app$callback(
+    output=list(id='error_plot', property='figure'),
+    params=list(input(id='region', property = 'value')),
+    function(input_value){
+        create_error_graph(df = merged_df, region = input_value)
+})
+
+app$callback(
+    output=list(id='preference_bar_plot', property='figure'),
+    params=list(input(id='region', property='value'),
+                input(id='preference_name', property='value')),
+    function(region, column){
+      region_df <- df %>% filter( Region == region)
+      column_name <- str_replace_all(column, "_"," ")
+      bar_plot <- ggplot(region_df) +
+        aes(x = !!sym(column),
+            fill = Country,
+            y = reorder(Country, !!sym(column))) +
+        geom_bar(stat = 'identity', fill="#0ABAB5") +
+                 scale_x_continuous(expand=expansion(mult=c(0,0.5))) +
+        xlab(column_name) + 
+        ylab("")
+    return(ggplotly(bar_plot))
+})
+
+###App callback for data
+app$callback(
+    output = list(id = 'table', property= 'data'),
+    params=list(input(id = 'country_name', property ='value')),
+    function(input_value = "Canada") {
+      country_df <- filter(df, Country %in% input_value) 
+      country_df 
+})
+
+###App callback for preferences
+app$callback(
+   output = list(id = 'table', property= 'columns'),
+   params=list(input(id = 'preference_name',property ='value')),
+   function(preference_value = 'Social support') {
+      col<-list( 
+        list(id = "Country", name = "Country"),
+        list(id = "Region", name = "Region"),
+        list(
+            id = preference_value,
+            name = str_replace_all(preference_value, "_"," ")
+        ))
+      col
+})
 
 app$run_server(host = '0.0.0.0', debug=T) 

@@ -84,6 +84,10 @@ create_error_graph <- function(df = merged_df, region = "Western Europe"){
   happiness_rank <- ggplot(region_df) +
       aes(x = Happiness_score,
           y = reorder(Country, Happiness_score),
+          text = paste0("Country: ", Country, "\n",
+                        "Happiness Score: ", Happiness_score, "\n",
+                        "High: ", upperwhisker, "\n",
+                        "Low: ", lowerwhisker),
           xmin = lowerwhisker,
           xmax = upperwhisker) +
       geom_point(color = "#0abab5", size = 3) +
@@ -91,7 +95,7 @@ create_error_graph <- function(df = merged_df, region = "Western Europe"){
       labs(x = "Happiness Score", y = "")
   happiness_rank <- happiness_rank +
       theme_classic() 
-  error <- ggplotly(happiness_rank) %>% layout(clickmode = 'event+select')
+  error <- ggplotly(happiness_rank, tooltip = "text") %>% layout(clickmode = 'event+select')
   return(error)
 }
 
@@ -100,14 +104,15 @@ create_bar_graph <- function(df = merged_df, region = "Western Europe"){
     filter(Regional_indicator == region)
   # Population density chart for the selected region
   density_chart <- ggplot(region_df) +
-    aes(x = Density, y = reorder(Country, Density)) +
+    aes(x = Density, 
+        y = reorder(Country, Density)) +
     geom_bar(stat = "identity", fill = "#0abab5") +
-    # scale_x_continuous(oob=scales::oob_keep) +
+    scale_x_continuous(expand = expansion(mult = c(0, 0))) +
     labs(x = "Density", y = "")
   density_chart <- density_chart +
     theme_classic()
  
-  bar <- ggplotly(density_chart) %>% layout(clickmode = 'event+select')
+  bar <- ggplotly(density_chart, tooltip = "x") %>% layout(clickmode = 'event+select')
   return(bar)
 }
 
@@ -273,17 +278,19 @@ app$callback(
     params=list(input(id='region', property='value'),
                 input(id='preference_name', property='value')),
     function(region, column){
-      region_df <- df %>% filter( Region == region)
+      region_df <- df %>% filter(Region == region)
       column_name <- str_replace_all(column, "_"," ")
       bar_plot <- ggplot(region_df) +
         aes(x = !!sym(column),
             fill = Country,
-            y = reorder(Country, !!sym(column))) +
+            y = reorder(Country, !!sym(column)),
+            text = paste0("Country: ", Country, "\n",
+                          str_replace_all(column, "_", " "), ": ", !!sym(column))) +
         geom_bar(stat = 'identity', fill="#0ABAB5") +
                  scale_x_continuous(expand=expansion(mult=c(0,0.5))) +
         xlab(column_name) + 
         ylab("")
-    return(ggplotly(bar_plot))
+    return(ggplotly(bar_plot, tooltip = "text"))
 })
 
 ###App callback for data
